@@ -164,3 +164,5 @@ if __name__ == '__main__':
         plt.plot(range(initial, initial + step*gap, gap), result)
         plt.show()
 
+
+
