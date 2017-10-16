@@ -5,21 +5,23 @@ from tensorflow.contrib.learn.python.learn.estimators.estimator import SKCompat
 import matplotlib.pyplot as plt
 learn = tf.contrib.learn
 import math
+import os
+import re
+from TensorFlow.CarPrediction.error import *
+
+def files():
+    current = list(os.walk(os.path.dirname(os.path.realpath(__file__))))[1][2]
+    allfiles = list(filter(lambda x: re.match(".*\\.csv", x), current))
+    return allfiles
 
 
-def train(HIDDEN_SIZE=20, NUM_LAYERS=2, TIMESTEPS=10, TRAINING_STEPS=3000, BATCH_SIZE=10, show=False):
-    data_init = []
+def train(FILE_NAME="本田CR-V.csv", HIDDEN_SIZE=20, NUM_LAYERS=2, TIMESTEPS=10, TRAINING_STEPS=3000, BATCH_SIZE=10, show=False):
     data1 = []
-    data2 = []
-    with open("cardata/赛拉图.csv", "r", encoding="utf-8") as f:
+    with open("cardata/" + FILE_NAME, "r", encoding="utf-8") as f:
         reader = csv.reader(f)
         for row in reader:
             data1.append(int(row[-1]))
 
-    with open("cardata/赛拉图.csv", "r", encoding="utf-8") as f:
-        reader = csv.reader(f)
-        for row in reader:
-            data2.append(int(row[-1]))
 
     data2 = data1[60:]
     data1 = data1[:60]
@@ -75,46 +77,6 @@ def train(HIDDEN_SIZE=20, NUM_LAYERS=2, TIMESTEPS=10, TRAINING_STEPS=3000, BATCH
 
         return predictions, loss, train_op
 
-    def MAPE(predict, result):
-        mape = 0
-        for i in range(len(predict)):
-            mape += abs((result[i] - predict[i])/result[i])
-        mape /= len(predict)
-        return  mape
-
-    def RMSPE(predict, result):
-        rmspe = 0
-        for i in range(len(result)):
-            rmspe += ((result[i] - predict[i])/result[i])**2
-        rmspe /= len(result)
-        rmspe = rmspe**0.5 * 100
-        return rmspe
-
-    def RMSE(predict, result):
-        rmse = 0
-        for i in range(len(result)):
-            rmse += (result[i] - predict[i])**2
-        rmse /= len(result)
-        rmse = rmse**0.5
-        return rmse
-
-    def MAE(predict, result):
-        mae = 0
-        for i in range(len(result)):
-            mae += abs(result[i] - predict[i])
-        mae /= len(result)
-        return mae
-
-    def NMSE(predict, result):
-        up = 0
-        down = 0
-        mean = sum(result)/len(result)
-        for i in range(len(result)):
-            up += (result[i] - predict[i])**2
-            down += (result[i] - mean)**2
-        nmse = up/down
-        return nmse
-
 
     # 封装之前定义的lstm。
     regressor = SKCompat(learn.Estimator(model_fn=lstm_model, model_dir=""))
@@ -147,22 +109,23 @@ def train(HIDDEN_SIZE=20, NUM_LAYERS=2, TIMESTEPS=10, TRAINING_STEPS=3000, BATCH
         plt.legend([plot_predicted, plot_test],['predicted', 'real'])
         plt.show()
     else:
-        return rmse[0]
+        return [MAPE(predicted, test_y)[0], RMSPE(predicted, test_y)[0]]
 
 
 if __name__ == '__main__':
-    if True:
-        train(show=True)
+    if False:
+        with open("train_data/data.csv", "w", newline='', encoding="utf-8") as f:
+            csv_writer = csv.writer(f, dialect='excel')
+            csv_writer.writerow(['车型', "MAPE", "RMSPE"])
+            for filename in files():
+                car_data = [filename.split('.')[0]]
+                train_data = train(FILE_NAME=filename)
+                car_data.extend(train_data)
+                csv_writer.writerow(car_data)
+        '''
+        train(show=True)'''
     else:
-        result = []
-        step = 10
-        initial = 10
-        gap = 10
-        for i in range(step):
-            print("BATCH_SIZE %d" % (initial+i*gap), end=",")
-            result.append(train(BATCH_SIZE=initial+i*gap))
-        plt.plot(range(initial, initial + step*gap, gap), result)
-        plt.show()
+        train(show=True)
 
 
 
